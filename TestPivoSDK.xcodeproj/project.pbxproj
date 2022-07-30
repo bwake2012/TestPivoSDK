@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C448288028959467009C295B /* PivoBasicSDK.PivoEvent+description.swift in Sources */ = {isa = PBXBuildFile; fileRef = C448287F28959467009C295B /* PivoBasicSDK.PivoEvent+description.swift */; };
+		C448288328959BE4009C295B /* debugLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = C448288228959BE4009C295B /* debugLog.swift */; };
+		C448288528959F8D009C295B /* ConnectedPivo.swift in Sources */ = {isa = PBXBuildFile; fileRef = C448288428959F8D009C295B /* ConnectedPivo.swift */; };
+		C44828872895A478009C295B /* PivoScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44828862895A478009C295B /* PivoScanner.swift */; };
 		C4606000288B7B71008C6A6F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4605FFF288B7B71008C6A6F /* AppDelegate.swift */; };
 		C4606002288B7B71008C6A6F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4606001288B7B71008C6A6F /* SceneDelegate.swift */; };
 		C4606004288B7B71008C6A6F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4606003288B7B71008C6A6F /* ViewController.swift */; };
@@ -21,6 +25,10 @@
 /* Begin PBXFileReference section */
 		9B02C481B09C2A06762DFE39 /* Pods-TestPivoSDK.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TestPivoSDK.debug.xcconfig"; path = "Target Support Files/Pods-TestPivoSDK/Pods-TestPivoSDK.debug.xcconfig"; sourceTree = "<group>"; };
 		BEC8558F5B86ADC3BB8862ED /* Pods-TestPivoSDK.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TestPivoSDK.release.xcconfig"; path = "Target Support Files/Pods-TestPivoSDK/Pods-TestPivoSDK.release.xcconfig"; sourceTree = "<group>"; };
+		C448287F28959467009C295B /* PivoBasicSDK.PivoEvent+description.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PivoBasicSDK.PivoEvent+description.swift"; sourceTree = "<group>"; };
+		C448288228959BE4009C295B /* debugLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = debugLog.swift; sourceTree = "<group>"; };
+		C448288428959F8D009C295B /* ConnectedPivo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedPivo.swift; sourceTree = "<group>"; };
+		C44828862895A478009C295B /* PivoScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PivoScanner.swift; sourceTree = "<group>"; };
 		C4605FFC288B7B71008C6A6F /* TestPivoSDK.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestPivoSDK.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4605FFF288B7B71008C6A6F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		C4606001288B7B71008C6A6F /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -46,6 +54,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		C448287E28959452009C295B /* PivoSDK Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				C448287F28959467009C295B /* PivoBasicSDK.PivoEvent+description.swift */,
+			);
+			path = "PivoSDK Extensions";
+			sourceTree = "<group>";
+		};
+		C448288128959BD6009C295B /* Utility */ = {
+			isa = PBXGroup;
+			children = (
+				C448288228959BE4009C295B /* debugLog.swift */,
+			);
+			path = Utility;
+			sourceTree = "<group>";
+		};
 		C4605FF3288B7B71008C6A6F = {
 			isa = PBXGroup;
 			children = (
@@ -67,6 +91,8 @@
 		C4605FFE288B7B71008C6A6F /* TestPivoSDK */ = {
 			isa = PBXGroup;
 			children = (
+				C448288128959BD6009C295B /* Utility */,
+				C448287E28959452009C295B /* PivoSDK Extensions */,
 				C4606015288B7E2E008C6A6F /* licenseKey.json */,
 				C4605FFF288B7B71008C6A6F /* AppDelegate.swift */,
 				C4606001288B7B71008C6A6F /* SceneDelegate.swift */,
@@ -76,6 +102,8 @@
 				C460600A288B7B73008C6A6F /* LaunchScreen.storyboard */,
 				C460600D288B7B73008C6A6F /* Info.plist */,
 				C4606017288C433E008C6A6F /* PivoHandler.swift */,
+				C44828862895A478009C295B /* PivoScanner.swift */,
+				C448288428959F8D009C295B /* ConnectedPivo.swift */,
 			);
 			path = TestPivoSDK;
 			sourceTree = "<group>";
@@ -213,9 +241,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C448288028959467009C295B /* PivoBasicSDK.PivoEvent+description.swift in Sources */,
 				C4606018288C433E008C6A6F /* PivoHandler.swift in Sources */,
+				C448288528959F8D009C295B /* ConnectedPivo.swift in Sources */,
 				C4606004288B7B71008C6A6F /* ViewController.swift in Sources */,
+				C44828872895A478009C295B /* PivoScanner.swift in Sources */,
 				C4606000288B7B71008C6A6F /* AppDelegate.swift in Sources */,
+				C448288328959BE4009C295B /* debugLog.swift in Sources */,
 				C4606002288B7B71008C6A6F /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

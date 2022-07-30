@@ -14,23 +14,31 @@ import PivoBasicSDK
 
 protocol PivoHandlerDelegate {
 
+    var connectedPivo: ConnectedPivo? { set get }
+
     func alert(title: String, message: String)
     func updateStatus(status: String)
 }
 
 class PivoHandler {
 
+    static var shared: PivoHandler = PivoHandler()
+
     private lazy var pivoSDK = PivoSDK.shared
 
-    private var delegate: PivoHandlerDelegate?
+    var delegate: PivoHandlerDelegate?
 
-    private var isScanning = false
-    private var isConnecting = false
-    private var rotators = [String: String]()
+    private var isScanning: Bool { nil != self.pivoScanner }
+    private var isConnecting: Bool { self.connectedPivo?.isConnecting ?? false }
 
-    init(delegate: PivoHandlerDelegate) {
+    private var pivoScanner: PivoScanner?
+    private var connectedPivo: ConnectedPivo?
 
-        self.delegate = delegate
+    private var foundRotators: Rotators = [:]
+
+    private var rotators: Rotators = [:]
+
+    private init() {
 
         guard let licenseFileURL = Bundle.main.url(forResource: "licenseKey", withExtension: "json")
         else {
@@ -38,7 +46,7 @@ class PivoHandler {
             return
         }
 
-        delegate.updateStatus(status: "Licence Key File Found")
+        delegate?.updateStatus(status: "Licence Key File Found")
 
         do {
             try pivoSDK.unlockWithLicenseKey(licenseKeyFileURL: licenseFileURL)
@@ -48,120 +56,66 @@ class PivoHandler {
             return
         }
 
-        delegate.updateStatus(status: "SDK Unlocked!")
+        pivoSDK.addDelegate(self)
 
-        startScanning()
+        delegate?.updateStatus(status: "SDK Unlocked!")
+
+        self.pivoScanner = PivoScanner(scanTime: 5.0) { [weak self] rotators in
+
+            guard let self = self else { return }
+
+            guard let rotators = rotators else {
+
+                self.delegate?.updateStatus(status: "Error scanning for rotators.")
+                return
+            }
+
+            self.handleAfterScanning(rotators: rotators)
+
+            self.pivoScanner = nil
+        }
     }
 
     deinit {
 
-        pivoSDK.stopScan()
+        self.pivoScanner = nil
+        self.connectedPivo = nil
+
         pivoSDK.removeDelegate(self)
-    }
-
-    private func startScanning() {
-        
-        let scanningPeriod : DispatchTime = .now() + 5
-        
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: scanningPeriod) {
-            
-            DispatchQueue.main.async {
-                self.scanBluetoothDevice()
-            }
-        }
-    }
-
-    private func stopScanning() {
-
-        stopScan()
     }
 }
 
 extension PivoHandler {
 
-    func scanBluetoothDevice() {
+    private func handleAfterScanning(rotators: Rotators) {
 
-        guard !isScanning else {
-            stopScan()
-            return
-        }
-
-        isConnecting = false
-        self.rotators.removeAll()
-
-        updateView()
-        do {
-            try pivoSDK.scan()
-        }
-        catch (let error as PivoError) {
-            switch error {
-            case .licenseNotProvided:
-                delegate?.updateStatus(status: "licenseNotProvided")
-                presentAlert(title: "Failed", message: "License not provided")
-            case .invalidLicenseKey:
-                delegate?.updateStatus(status: "invalidLicenseKey")
-                presentAlert(title: "Failed", message: "Invalid license key")
-            case .expiredLicenseKey:
-                delegate?.updateStatus(status: "expiredLicenseKey")
-                presentAlert(title: "Failed", message: "License is expired")
-            case .bluetoothOff:
-                delegate?.updateStatus(status: "bluetoothOff")
-                presentAlert(title: "Failed", message: "Bluetooth is off, please turn it on")
-            case .cannotReadLicenseKeyFile:
-                presentAlert(title: "Failed", message: "Can't read license key")
-            case .bluetoothPermissionNotAllowed:
-                presentAlert(title: "Failed", message: "Bluetooth permission is not allowed")
-            case .trackingModeNotSupported:
-                presentAlert(title: "Failed", message: "Tracking mode is not supported")
-            case .feedbackNotSupported:
-                presentAlert(title: "Failed", message: "Feedback not supported")
-            case .pivoNotConnected:
-                presentAlert(title: "Failed", message: "Pivo not connected")
-            @unknown default:
-                break
-            }
-            return
-        }
-        catch {
-            return
-        }
-
-        isScanning = true
-
-        delegate?.updateStatus(status: "Scanning...")
-
-        let scanningPeriod : DispatchTime = .now() + 5
-
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: scanningPeriod) {
-            DispatchQueue.main.async { () in
-                if self.isScanning {
-                    self.stopScan()
-                }
-            }
-        }
-    }
-
-    private func stopScan() {
-        pivoSDK.stopScan()
-        isScanning = false
-
-        handleAfterScanning()
-    }
-
-    private func handleAfterScanning() {
         //MARK: + If 1 device is availabel => connect
         //      + Multiple devices ask user for selecting
-        if self.rotators.count == 0 {
+        if rotators.count == 0 {
             delegate?.updateStatus(status: "Could not find any rotators")
-        } else if self.rotators.count == 1 {
+        } else if rotators.count == 1 {
 
-            let rotatorId = self.rotators.first!.key
-            delegate?.updateStatus(status: "Please connect to rotator")
-            self.isConnecting = true
-            self.pivoSDK.connect(id: rotatorId)
+            let rotatorId = rotators.first!.key
+            let rotatorName = rotators[rotatorId] ?? "*UNKNOWN ROTATOR*"
+            self.connectedPivo = ConnectedPivo(id: rotatorId, name: rotatorName) { [weak self] success in
+
+                guard let self = self else { return }
+
+                guard success else {
+
+                    self.delegate?.updateStatus(status: "Error connecting to Pivo!")
+                    self.connectedPivo = nil
+                    return
+                }
+
+                self.delegate?.connectedPivo = self.connectedPivo
+            }
+
         } else {
-            delegate?.updateStatus(status: "Several rotators detected")
+            delegate?.updateStatus(status: "Multiple rotators detected")
         }
+
+        self.foundRotators = rotators
     }
 
     func updateView() {
@@ -169,11 +123,13 @@ extension PivoHandler {
     }
 }
 
+/// Required PivoConnectionDelegate function
 extension PivoHandler: PivoConnectionDelegate {
 
+    /// User denied the bluetooth permission
     func pivoConnectionBluetoothPermissionDenied() {
 
-        delegate?.updateStatus(status: "Bluetooth permission denied!")
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Bluetooth Permission Denied!")
     }
 }
 
@@ -184,3 +140,95 @@ extension PivoHandler {
         delegate?.alert(title: title, message: message)
     }
 }
+
+/// Optional PivoConnectionDelegate functions
+extension PivoHandler {
+
+    /// A Pivo is discovered during scaning process
+    /// - Parameters:
+    ///   - id: id of the Pivo, can be used to differentiate between Pivo and to connect to it later
+    ///   - deviceName: Pivo's name
+    func pivoConnection(didDiscover id: String, deviceName: String) {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Pivo id: \(id) name: \(deviceName) discovered")
+        rotators[id] = deviceName
+    }
+
+    /// Pivo is connected to the app
+    /// - Parameter id: Pivo's id
+    func pivoConnection(didConnect id: String) {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Pivo id: \(id) name: \(rotators[id] ?? "*UNKNOWN*") connected.")
+    }
+
+    /// Pivo is disconnected
+    /// - Parameter id: Pivo's id
+    func pivoConnection(didDisconnect id: String) {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Pivo id: \(id) name: \(rotators[id] ?? "*UNKNOWN*") disconnected.")
+    }
+
+    /// Fail to connect to the Pivo
+    /// - Parameter id: Pivo's id
+    func pivoConnection(didFailToConnect id: String) {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Pivo id: \(id) name: \(rotators[id] ?? "*UNKNOWN*") failed to connect.")
+    }
+
+    /// Finish establish the connection with Pivo, you can control the Pivo from now on
+    /// - Parameter id: Pivo's id
+    func pivoConnection(didEstablishSuccessfully id: String) {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Pivo id: \(id) name: \(rotators[id] ?? "*UNKNOWN*") connection fully established.")
+    }
+
+    /// Pivo stop rotating after execute a command from the app or user press Stop button
+    func pivoConnectionDidRotate() {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Pivo stop rotating after execute a command from the app or user press Stop button")
+    }
+
+    func pivoConnectionDidRotate1DegreeLeft() {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Connected Pivo did rotate 1 Degree Left")
+    }
+
+    func pivoConnectionDidRotate1DegreeRight() {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Connected Pivo did rotate 1 Degree Right")
+    }
+
+    /// Pivo battery level changed
+    /// - Parameter batteryLevel: New battery level
+    func pivoConnection(batteryLevel: Int) {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Pivo battery level: \(batteryLevel)")
+    }
+
+    /// When user press remote control buttons, Pivo forwards button that presses back to the app
+    /// - Parameter command: command from remote control
+    func pivoConnection(remoteControlerCommandReceived command: PivoBasicSDK.PivoEvent) {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Pivo remote controller command: \(command.description)")
+    }
+
+    /// Call whenever bluetooth status changed
+    /// - Parameter bluetoothIsOn: on or off
+    func pivoConnection(bluetoothIsOn: Bool) {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Pivo SDK Bluetooth status: \(bluetoothIsOn ? "On" : "Off")")
+    }
+
+    /// Notify when by pass remote controller on
+    func pivoConnectionByPassRemoteControllerOn() {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Pivo SDK Bypass Remote Controller On")
+    }
+
+    /// Notify when by pass remote controller off
+    func pivoConnectionByPassRemoteControllerOff() {
+
+        delegate?.alert(title: "PivoSDK\nPivoConnectionDelegate", message: "Pivo SDK Bypass Remote Controller Off")
+    }
+}
+
